@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 253 251 247;
+  --foreground: 26 26 26;
+  --card: 255 255 255;
+  --card-foreground: 26 26 26;
+  --border: 26 26 26;
+  --muted: 242 239 233;
+  --muted-foreground: 64 64 64;
+  --accent: 204 255 0;
+  --accent-foreground: 0 0 0;
+  --primary: 93 63 211;
+  --primary-foreground: 255 255 255;
+  --ring: 93 63 211;
+}
+
+.dark {
+  --background: 15 23 42;
+  --foreground: 248 250 252;
+  --card: 30 41 59;
+  --card-foreground: 248 250 252;
+  --border: 51 65 85;
+  --muted: 30 41 59;
+  --muted-foreground: 148 163 184;
+  --accent: 204 255 0;
+  --accent-foreground: 0 0 0;
+  --primary: 93 63 211;
+  --primary-foreground: 255 255 255;
+  --ring: 167 139 250;
+}
+
+@layer base {
+  * {
+    @apply border-ink/20 dark:border-slate-700;
+  }
+
+  body {
+    @apply bg-paper text-ink dark:bg-dark-900 dark:text-slate-100 font-body;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-primary-900 dark:text-primary-100;
+  }
+
+  /* Typography classes from design system */
+  .text-display-xl {
+    @apply text-6xl font-bold tracking-tighter leading-none font-display;
+  }
+  .text-display-lg {
+    @apply text-5xl font-bold tracking-tight font-display;
+  }
+  .text-heading-1 {
+    @apply text-3xl font-bold tracking-tight font-display;
+  }
+  .text-heading-2 {
+    @apply text-2xl font-semibold font-display;
+  }
+  .text-body-lg {
+    @apply text-lg font-medium leading-relaxed font-body;
+  }
+  .text-body-base {
+    @apply text-base font-normal leading-normal font-body;
+  }
+  .text-caption {
+    @apply text-sm font-bold uppercase tracking-widest font-mono;
+  }
+}
+
+@layer components {
+  /* Glass card with backdrop blur */
+  .glass-card {
+    @apply bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl;
+    @apply border-2 border-ink dark:border-white/10;
+    @apply shadow-hard dark:shadow-glass-dark;
+  }
+
+  /* Neo-brutalist card */
+  .card-brutal {
+    @apply relative bg-white rounded-xl border-2 border-ink p-6;
+    @apply shadow-hard;
+  }
+
+  /* Dossier card (content container) */
+  .card-dossier {
+    @apply relative bg-white rounded-xl border-2 border-ink p-6;
+    @apply shadow-[6px_6px_0px_0px_#1A1A1A];
+  }
+
+  /* Power button - Primary action */
+  .btn-power {
+    @apply relative px-6 py-3 rounded-xl;
+    @apply bg-primary text-white font-display font-bold text-lg tracking-wide;
+    @apply border-2 border-ink;
+    @apply shadow-[4px_4px_0px_0px_#1A1A1A];
+    @apply hover:translate-x-[2px] hover:translate-y-[2px];
+    @apply hover:shadow-[2px_2px_0px_0px_#1A1A1A];
+    @apply active:translate-x-[4px] active:translate-y-[4px];
+    @apply active:shadow-none;
+    @apply transition-all duration-150 ease-out;
+    @apply overflow-hidden;
+  }
+
+  /* Volt button - Secondary/Ghost */
+  .btn-volt {
+    @apply px-6 py-3 rounded-xl;
+    @apply bg-accent text-ink font-display font-bold;
+    @apply border-2 border-ink;
+    @apply shadow-[4px_4px_0px_0px_#1A1A1A];
+    @apply hover:bg-white transition-all duration-200;
+  }
+
+  /* Terminal-style input */
+  .input-terminal {
+    @apply w-full px-4 py-4 bg-white;
+    @apply border-2 border-ink rounded-xl;
+    @apply font-body text-lg placeholder:text-ink-lighter;
+    @apply focus:outline-none focus:border-primary focus:shadow-[4px_4px_0px_0px_#5D3FD3];
+    @apply transition-all duration-200;
+  }
+
+  /* Main background gradient */
+  .bg-gradient-main {
+    @apply bg-gradient-to-br from-paper via-white to-paper-dark;
+    @apply dark:from-dark-900 dark:via-dark-800 dark:to-dark-900;
+  }
+
+  /* Card gradient */
+  .bg-gradient-card {
+    @apply bg-gradient-to-br from-white to-paper-dark;
+    @apply dark:from-dark-800 dark:to-dark-900;
+  }
+
+  /* Primary gradient */
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-primary-600 via-primary-500 to-primary-400;
+  }
+
+  /* Focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2;
+    @apply dark:focus:ring-primary-400/50 dark:focus:ring-offset-dark-900;
+  }
+
+  /* Tag/Label component */
+  .tag {
+    @apply inline-flex items-center px-3 py-1 rounded-lg;
+    @apply bg-accent border-2 border-ink;
+    @apply font-mono text-xs font-bold uppercase tracking-widest;
+  }
+
+  /* Badge */
+  .badge-brutal {
+    @apply inline-flex items-center px-3 py-1;
+    @apply bg-primary text-white rounded-full;
+    @apply border-2 border-ink shadow-hard-sm;
+    @apply font-mono text-xs font-bold;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  /* 3D Flip Animation Utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Shine effect for buttons */
+  .shine-effect::before {
+    content: '';
+    @apply absolute inset-0 w-full h-full bg-white/20;
+    transform: translateX(-100%) skewX(-12deg);
+  }
+
+  .shine-effect:hover::before {
+    animation: shine 0.6s ease-out;
+  }
+}
