@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from './ui/Button'
 
 interface PodcastPlayerProps {
   script: string
@@ -204,23 +205,31 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
 
   return (
     <div
-      className="bg-white dark:bg-dark-800 rounded-2xl shadow-xl overflow-hidden"
+      className="bg-ink dark:bg-dark-900 rounded-2xl border-2 border-ink shadow-[8px_8px_0px_0px_#CCFF00] overflow-hidden"
       role="application"
       aria-label={`Podcast player: ${title}`}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-4 text-white">
+      <div className="bg-gradient-to-r from-primary to-primary-600 px-4 sm:px-6 py-4 text-white border-b-2 border-ink">
         <div className="flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg sm:text-xl font-bold truncate">{title}</h2>
-            <p className="text-purple-100 text-sm">
-              Podcast Summary
-            </p>
+          <div className="min-w-0 flex-1 flex items-center gap-4">
+            {/* Album Art / Icon */}
+            <div className="w-14 h-14 bg-gradient-to-br from-accent to-accent-hover rounded-xl border-2 border-white flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7 text-ink" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-display text-lg sm:text-xl font-bold truncate">{title}</h2>
+              <p className="text-primary-100 text-sm font-body">
+                Podcast Summary
+              </p>
+            </div>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 text-white hover:text-purple-100 transition-colors rounded-lg hover:bg-purple-500"
+              className="p-2 text-white hover:text-primary-100 transition-colors rounded-lg hover:bg-white/10"
               aria-label="Close podcast player"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +241,7 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
       </div>
 
       {/* Audio Player */}
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 bg-ink">
         <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
         {/* Error State */}
@@ -242,7 +251,7 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm"
+              className="mb-4 p-3 bg-danger/20 border-2 border-danger rounded-xl text-danger text-sm font-body"
               role="alert"
             >
               {error}
@@ -251,10 +260,21 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
         </AnimatePresence>
 
         {/* Progress Bar */}
-        <div className="mb-4">
+        <div className="mb-6">
           <label htmlFor="audio-progress" className="sr-only">
             Audio progress: {formatTime(currentTime)} of {formatTime(audioDuration)}
           </label>
+          <div className="relative h-3 bg-ink-light/30 rounded-full overflow-hidden border border-white/20">
+            <motion.div
+              className="absolute inset-y-0 left-0 bg-accent rounded-full"
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.1 }}
+            >
+              {/* Glowing Edge */}
+              <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#fff]" />
+            </motion.div>
+          </div>
           <input
             id="audio-progress"
             type="range"
@@ -262,24 +282,25 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
             max={audioDuration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-2 bg-slate-200 dark:bg-dark-600 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            style={{ position: 'relative' }}
             aria-valuemin={0}
             aria-valuemax={audioDuration || 100}
             aria-valuenow={currentTime}
             aria-valuetext={`${formatTime(currentTime)} of ${formatTime(audioDuration)}`}
           />
-          <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <div className="flex justify-between text-sm text-white/70 mt-2 font-mono">
             <span aria-hidden="true">{formatTime(currentTime)}</span>
             <span aria-hidden="true">{formatTime(audioDuration)}</span>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-6">
           {/* Skip Backward */}
           <button
             onClick={skipBackward}
-            className="p-2 text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-dark-700"
+            className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
             aria-label="Skip backward 10 seconds"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,21 +312,21 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
           <button
             onClick={togglePlayPause}
             disabled={isLoading && !isPlaying}
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white text-ink flex items-center justify-center hover:scale-105 transition-all shadow-[4px_4px_0px_0px_#CCFF00] border-2 border-ink disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={isPlaying ? 'Pause' : 'Play'}
             aria-pressed={isPlaying}
           >
             {isLoading && !isPlaying ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             ) : isPlaying ? (
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
             ) : (
-              <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -314,7 +335,7 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
           {/* Skip Forward */}
           <button
             onClick={skipForward}
-            className="p-2 text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-dark-700"
+            className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
             aria-label="Skip forward 10 seconds"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,16 +348,16 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           {/* Playback Speed */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400" id="speed-label">Speed:</span>
+            <span className="text-sm text-white/60 font-mono uppercase tracking-wide" id="speed-label">Speed:</span>
             <div className="flex gap-1" role="group" aria-labelledby="speed-label">
               {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
                 <button
                   key={rate}
                   onClick={() => handlePlaybackRateChange(rate)}
-                  className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
+                  className={`px-2.5 py-1.5 rounded-lg text-sm font-mono font-bold transition-all border-2 ${
                     playbackRate === rate
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-100 dark:bg-dark-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-dark-500'
+                      ? 'bg-accent text-ink border-ink shadow-[2px_2px_0px_0px_#1A1A1A]'
+                      : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
                   }`}
                   aria-pressed={playbackRate === rate}
                   aria-label={`${rate}x speed`}
@@ -348,7 +369,7 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
           </div>
 
           {/* Volume */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 if (audioRef.current) {
@@ -357,7 +378,7 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
                   setVolume(newVolume)
                 }
               }}
-              className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              className="p-2 text-white/70 hover:text-accent transition-colors rounded-lg hover:bg-white/10"
               aria-label={volume === 0 ? 'Unmute' : 'Mute'}
             >
               {volume === 0 ? (
@@ -371,6 +392,13 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
                 </svg>
               )}
             </button>
+            <div className="relative w-24 h-2 bg-white/20 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 bg-accent rounded-full"
+                initial={false}
+                animate={{ width: `${volume * 100}%` }}
+              />
+            </div>
             <label htmlFor="volume-control" className="sr-only">
               Volume: {Math.round(volume * 100)}%
             </label>
@@ -382,7 +410,8 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
               step={0.1}
               value={volume}
               onChange={handleVolumeChange}
-              className="w-20 h-2 bg-slate-200 dark:bg-dark-600 rounded-lg appearance-none cursor-pointer accent-purple-600"
+              className="absolute w-24 h-2 opacity-0 cursor-pointer"
+              style={{ position: 'relative', marginLeft: '-6rem' }}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(volume * 100)}
@@ -392,31 +421,40 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
         </div>
 
         {/* Keyboard Shortcuts */}
-        <div className="text-xs text-slate-400 dark:text-slate-500 text-center mb-4 hidden sm:block">
-          <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-dark-700 rounded font-mono">Space</kbd> Play/Pause
-          <span className="mx-2">|</span>
-          <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-dark-700 rounded font-mono">J/L</kbd> Skip 10s
-          <span className="mx-2">|</span>
-          <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-dark-700 rounded font-mono">M</kbd> Mute
+        <div className="flex flex-wrap justify-center gap-4 text-sm mb-6 hidden sm:flex">
+          {[
+            { key: 'Space', action: 'Play/Pause' },
+            { key: 'J/L', action: 'Skip 10s' },
+            { key: 'M', action: 'Mute' },
+          ].map(({ key, action }) => (
+            <div key={key} className="flex items-center gap-2 text-white/50">
+              <kbd className="px-2 py-1 bg-white/10 rounded-lg text-xs font-mono font-bold border border-white/20">
+                {key}
+              </kbd>
+              <span className="font-body">{action}</span>
+            </div>
+          ))}
         </div>
 
         {/* Script Toggle */}
         <button
           onClick={() => setShowScript(!showScript)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-dark-700 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-600 transition-colors mb-4"
+          className="w-full flex items-center justify-between px-4 py-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors mb-4 border border-white/20"
           aria-expanded={showScript}
           aria-controls="transcript-content"
         >
-          <span className="font-medium text-slate-700 dark:text-slate-200">Transcript</span>
-          <svg
-            className={`w-5 h-5 text-slate-500 transition-transform ${showScript ? 'rotate-180' : ''}`}
+          <span className="font-display font-bold text-white">Transcript</span>
+          <motion.svg
+            animate={{ rotate: showScript ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-5 h-5 text-white/60"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          </motion.svg>
         </button>
 
         {/* Script Content */}
@@ -430,12 +468,12 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
               className="mb-6 overflow-hidden"
             >
               <div
-                className="max-h-64 overflow-y-auto p-4 bg-slate-50 dark:bg-dark-700 rounded-lg border border-slate-200 dark:border-dark-600"
+                className="max-h-64 overflow-y-auto p-4 bg-paper dark:bg-dark-700 rounded-xl border-2 border-ink"
                 tabIndex={0}
                 role="region"
                 aria-label="Podcast transcript"
               >
-                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
+                <p className="text-ink dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base font-body">
                   {script}
                 </p>
               </div>
@@ -446,29 +484,29 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
         {/* Download Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           {audioUrl && (
-            <button
+            <Button
+              variant="primary"
               onClick={handleDownloadAudio}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
-              aria-label="Download audio as MP3"
+              className="flex-1"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               <span className="hidden sm:inline">Download Audio</span>
               <span className="sm:hidden">Audio</span>
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="outline"
             onClick={handleDownloadScript}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-dark-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-dark-500 transition-colors"
-            aria-label="Download script as text file"
+            className="flex-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <span className="hidden sm:inline">Download Script</span>
             <span className="sm:hidden">Script</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>
