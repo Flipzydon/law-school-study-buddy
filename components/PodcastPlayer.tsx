@@ -14,6 +14,7 @@ interface PodcastPlayerProps {
 
 export default function PodcastPlayer({ script, audioUrl, duration, title, onClose }: PodcastPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const transcriptRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(duration || 0)
@@ -22,6 +23,9 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
   const [showScript, setShowScript] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
+  const userScrolledRef = useRef(false)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const audio = audioRef.current
@@ -200,6 +204,51 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [togglePlayPause, skipBackward, skipForward, volume, onClose])
+
+  // Auto-scroll transcript based on audio progress
+  useEffect(() => {
+    if (!autoScroll || !isPlaying || !showScript || userScrolledRef.current) return
+
+    const transcript = transcriptRef.current
+    if (!transcript || audioDuration <= 0) return
+
+    // Calculate scroll position based on audio progress
+    const scrollableHeight = transcript.scrollHeight - transcript.clientHeight
+    const targetScrollTop = (currentTime / audioDuration) * scrollableHeight
+
+    // Smooth scroll to target position
+    transcript.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth'
+    })
+  }, [currentTime, audioDuration, autoScroll, isPlaying, showScript])
+
+  // Handle manual scroll - temporarily disable auto-scroll
+  const handleTranscriptScroll = useCallback(() => {
+    if (!autoScroll) return
+
+    // Mark that user has scrolled manually
+    userScrolledRef.current = true
+
+    // Clear any existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
+    }
+
+    // Re-enable auto-scroll after 3 seconds of no manual scrolling
+    scrollTimeoutRef.current = setTimeout(() => {
+      userScrolledRef.current = false
+    }, 3000)
+  }, [autoScroll])
+
+  // Cleanup scroll timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0
 
@@ -448,25 +497,49 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
         )}
 
         {/* Script Toggle */}
-        <button
-          onClick={() => setShowScript(!showScript)}
-          className="w-full flex items-center justify-between px-4 py-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors mb-4 border border-white/20"
-          aria-expanded={showScript}
-          aria-controls="transcript-content"
-        >
-          <span className="font-display font-bold text-white">Transcript</span>
-          <motion.svg
-            animate={{ rotate: showScript ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="w-5 h-5 text-white/60"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => setShowScript(!showScript)}
+            className="flex-1 flex items-center justify-between px-4 py-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors border border-white/20"
+            aria-expanded={showScript}
+            aria-controls="transcript-content"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </motion.svg>
-        </button>
+            <span className="font-display font-bold text-white">Transcript</span>
+            <motion.svg
+              animate={{ rotate: showScript ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-5 h-5 text-white/60"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </button>
+
+          {/* Auto-scroll Toggle */}
+          {showScript && audioUrl && (
+            <button
+              onClick={() => {
+                setAutoScroll(!autoScroll)
+                userScrolledRef.current = false
+              }}
+              className={`px-3 py-4 rounded-xl border transition-all font-mono text-xs font-bold ${
+                autoScroll
+                  ? 'bg-accent text-ink border-ink shadow-[2px_2px_0px_0px_#1A1A1A]'
+                  : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20'
+              }`}
+              aria-pressed={autoScroll}
+              aria-label={autoScroll ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
+              title={autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {/* Script Content */}
         <AnimatePresence>
@@ -479,7 +552,9 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
               className="mb-6 overflow-hidden"
             >
               <div
-                className="max-h-64 overflow-y-auto p-4 bg-paper dark:bg-dark-700 rounded-xl border-2 border-ink"
+                ref={transcriptRef}
+                onScroll={handleTranscriptScroll}
+                className="max-h-64 overflow-y-auto p-4 bg-paper dark:bg-dark-700 rounded-xl border-2 border-ink scroll-smooth"
                 tabIndex={0}
                 role="region"
                 aria-label="Podcast transcript"
@@ -488,6 +563,21 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
                   {script}
                 </p>
               </div>
+              {/* Auto-scroll indicator */}
+              {audioUrl && (
+                <div className="flex items-center justify-center gap-2 mt-2 text-xs text-white/40 font-body">
+                  {autoScroll ? (
+                    <>
+                      <svg className="w-3 h-3 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                      <span>Auto-scrolling with audio</span>
+                    </>
+                  ) : (
+                    <span>Scroll manually or enable auto-scroll</span>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
