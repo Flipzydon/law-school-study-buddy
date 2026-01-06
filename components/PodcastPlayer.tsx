@@ -242,7 +242,13 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
 
       {/* Audio Player */}
       <div className="p-4 sm:p-6 bg-ink">
-        <audio ref={audioRef} src={audioUrl} preload="metadata" />
+        {audioUrl ? (
+          <audio ref={audioRef} src={audioUrl} preload="metadata" />
+        ) : (
+          <div className="mb-4 p-4 bg-primary/20 border-2 border-primary rounded-xl text-white text-sm font-body text-center">
+            Audio generation failed. You can still read the transcript below.
+          </div>
+        )}
 
         {/* Error State */}
         <AnimatePresence>
@@ -259,182 +265,187 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
           )}
         </AnimatePresence>
 
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <label htmlFor="audio-progress" className="sr-only">
-            Audio progress: {formatTime(currentTime)} of {formatTime(audioDuration)}
-          </label>
-          <div className="relative h-3 bg-ink-light/30 rounded-full overflow-hidden border border-white/20">
-            <motion.div
-              className="absolute inset-y-0 left-0 bg-accent rounded-full"
-              initial={false}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.1 }}
-            >
-              {/* Glowing Edge */}
-              <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#fff]" />
-            </motion.div>
-          </div>
-          <input
-            id="audio-progress"
-            type="range"
-            min={0}
-            max={audioDuration || 100}
-            value={currentTime}
-            onChange={handleSeek}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            style={{ position: 'relative' }}
-            aria-valuemin={0}
-            aria-valuemax={audioDuration || 100}
-            aria-valuenow={currentTime}
-            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(audioDuration)}`}
-          />
-          <div className="flex justify-between text-sm text-white/70 mt-2 font-mono">
-            <span aria-hidden="true">{formatTime(currentTime)}</span>
-            <span aria-hidden="true">{formatTime(audioDuration)}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-6">
-          {/* Skip Backward */}
-          <button
-            onClick={skipBackward}
-            className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
-            aria-label="Skip backward 10 seconds"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
-            </svg>
-          </button>
-
-          {/* Play/Pause */}
-          <button
-            onClick={togglePlayPause}
-            disabled={isLoading && !isPlaying}
-            className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white text-ink flex items-center justify-center hover:scale-105 transition-all shadow-[4px_4px_0px_0px_#CCFF00] border-2 border-ink disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-            aria-pressed={isPlaying}
-          >
-            {isLoading && !isPlaying ? (
-              <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : isPlaying ? (
-              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-              </svg>
-            ) : (
-              <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
-
-          {/* Skip Forward */}
-          <button
-            onClick={skipForward}
-            className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
-            aria-label="Skip forward 10 seconds"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Speed & Volume Controls */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          {/* Playback Speed */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-white/60 font-mono uppercase tracking-wide" id="speed-label">Speed:</span>
-            <div className="flex gap-1" role="group" aria-labelledby="speed-label">
-              {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                <button
-                  key={rate}
-                  onClick={() => handlePlaybackRateChange(rate)}
-                  className={`px-2.5 py-1.5 rounded-lg text-sm font-mono font-bold transition-all border-2 ${
-                    playbackRate === rate
-                      ? 'bg-accent text-ink border-ink shadow-[2px_2px_0px_0px_#1A1A1A]'
-                      : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                  }`}
-                  aria-pressed={playbackRate === rate}
-                  aria-label={`${rate}x speed`}
+        {/* Audio Controls - only show when audioUrl exists */}
+        {audioUrl && (
+          <>
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <label htmlFor="audio-progress" className="sr-only">
+                Audio progress: {formatTime(currentTime)} of {formatTime(audioDuration)}
+              </label>
+              <div className="relative h-3 bg-ink-light/30 rounded-full overflow-hidden border border-white/20">
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-accent rounded-full"
+                  initial={false}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.1 }}
                 >
-                  {rate}x
+                  {/* Glowing Edge */}
+                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#fff]" />
+                </motion.div>
+              </div>
+              <input
+                id="audio-progress"
+                type="range"
+                min={0}
+                max={audioDuration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                style={{ position: 'relative' }}
+                aria-valuemin={0}
+                aria-valuemax={audioDuration || 100}
+                aria-valuenow={currentTime}
+                aria-valuetext={`${formatTime(currentTime)} of ${formatTime(audioDuration)}`}
+              />
+              <div className="flex justify-between text-sm text-white/70 mt-2 font-mono">
+                <span aria-hidden="true">{formatTime(currentTime)}</span>
+                <span aria-hidden="true">{formatTime(audioDuration)}</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-3 sm:gap-6 mb-6">
+              {/* Skip Backward */}
+              <button
+                onClick={skipBackward}
+                className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
+                aria-label="Skip backward 10 seconds"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                </svg>
+              </button>
+
+              {/* Play/Pause */}
+              <button
+                onClick={togglePlayPause}
+                disabled={isLoading && !isPlaying}
+                className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white text-ink flex items-center justify-center hover:scale-105 transition-all shadow-[4px_4px_0px_0px_#CCFF00] border-2 border-ink disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                aria-pressed={isPlaying}
+              >
+                {isLoading && !isPlaying ? (
+                  <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : isPlaying ? (
+                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Skip Forward */}
+              <button
+                onClick={skipForward}
+                className="p-3 text-white/80 hover:text-accent transition-colors rounded-xl hover:bg-white/10 border border-white/20"
+                aria-label="Skip forward 10 seconds"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Speed & Volume Controls */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              {/* Playback Speed */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white/60 font-mono uppercase tracking-wide" id="speed-label">Speed:</span>
+                <div className="flex gap-1" role="group" aria-labelledby="speed-label">
+                  {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => handlePlaybackRateChange(rate)}
+                      className={`px-2.5 py-1.5 rounded-lg text-sm font-mono font-bold transition-all border-2 ${
+                        playbackRate === rate
+                          ? 'bg-accent text-ink border-ink shadow-[2px_2px_0px_0px_#1A1A1A]'
+                          : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                      }`}
+                      aria-pressed={playbackRate === rate}
+                      aria-label={`${rate}x speed`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Volume */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (audioRef.current) {
+                      const newVolume = volume > 0 ? 0 : 1
+                      audioRef.current.volume = newVolume
+                      setVolume(newVolume)
+                    }
+                  }}
+                  className="p-2 text-white/70 hover:text-accent transition-colors rounded-lg hover:bg-white/10"
+                  aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+                >
+                  {volume === 0 ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                  )}
                 </button>
+                <div className="relative w-24 h-2 bg-white/20 rounded-full overflow-hidden">
+                  <motion.div
+                    className="absolute inset-y-0 left-0 bg-accent rounded-full"
+                    initial={false}
+                    animate={{ width: `${volume * 100}%` }}
+                  />
+                </div>
+                <label htmlFor="volume-control" className="sr-only">
+                  Volume: {Math.round(volume * 100)}%
+                </label>
+                <input
+                  id="volume-control"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="absolute w-24 h-2 opacity-0 cursor-pointer"
+                  style={{ position: 'relative', marginLeft: '-6rem' }}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(volume * 100)}
+                  aria-valuetext={`${Math.round(volume * 100)}%`}
+                />
+              </div>
+            </div>
+
+            {/* Keyboard Shortcuts */}
+            <div className="flex flex-wrap justify-center gap-4 text-sm mb-6 hidden sm:flex">
+              {[
+                { key: 'Space', action: 'Play/Pause' },
+                { key: 'J/L', action: 'Skip 10s' },
+                { key: 'M', action: 'Mute' },
+              ].map(({ key, action }) => (
+                <div key={key} className="flex items-center gap-2 text-white/50">
+                  <kbd className="px-2 py-1 bg-white/10 rounded-lg text-xs font-mono font-bold border border-white/20">
+                    {key}
+                  </kbd>
+                  <span className="font-body">{action}</span>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* Volume */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (audioRef.current) {
-                  const newVolume = volume > 0 ? 0 : 1
-                  audioRef.current.volume = newVolume
-                  setVolume(newVolume)
-                }
-              }}
-              className="p-2 text-white/70 hover:text-accent transition-colors rounded-lg hover:bg-white/10"
-              aria-label={volume === 0 ? 'Unmute' : 'Mute'}
-            >
-              {volume === 0 ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-              )}
-            </button>
-            <div className="relative w-24 h-2 bg-white/20 rounded-full overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-accent rounded-full"
-                initial={false}
-                animate={{ width: `${volume * 100}%` }}
-              />
-            </div>
-            <label htmlFor="volume-control" className="sr-only">
-              Volume: {Math.round(volume * 100)}%
-            </label>
-            <input
-              id="volume-control"
-              type="range"
-              min={0}
-              max={1}
-              step={0.1}
-              value={volume}
-              onChange={handleVolumeChange}
-              className="absolute w-24 h-2 opacity-0 cursor-pointer"
-              style={{ position: 'relative', marginLeft: '-6rem' }}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(volume * 100)}
-              aria-valuetext={`${Math.round(volume * 100)}%`}
-            />
-          </div>
-        </div>
-
-        {/* Keyboard Shortcuts */}
-        <div className="flex flex-wrap justify-center gap-4 text-sm mb-6 hidden sm:flex">
-          {[
-            { key: 'Space', action: 'Play/Pause' },
-            { key: 'J/L', action: 'Skip 10s' },
-            { key: 'M', action: 'Mute' },
-          ].map(({ key, action }) => (
-            <div key={key} className="flex items-center gap-2 text-white/50">
-              <kbd className="px-2 py-1 bg-white/10 rounded-lg text-xs font-mono font-bold border border-white/20">
-                {key}
-              </kbd>
-              <span className="font-body">{action}</span>
-            </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* Script Toggle */}
         <button

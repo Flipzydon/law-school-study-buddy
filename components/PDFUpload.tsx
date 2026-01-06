@@ -189,6 +189,7 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
       const formData = new FormData()
       formData.append('pdf', file)
       formData.append('difficulty', config.difficulty)
+      formData.append('skipCache', 'true') // Force fresh audio generation
 
       const response = await fetch('/api/generate-podcast', {
         method: 'POST',
