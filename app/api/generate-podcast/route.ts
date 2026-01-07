@@ -234,25 +234,48 @@ export async function POST(request: NextRequest) {
     // Concatenate all audio buffers
     const audioBuffer = Buffer.concat(audioBuffers)
 
-    // Step 3: Upload audio to Supabase Storage
+    // Step 3: Upload audio to Supabase Storage with retry logic
     const timestamp = Date.now()
     const fileName = `${user.id}/${timestamp}_podcast.mp3`
 
-    const { error: uploadError } = await supabase.storage
-      .from('podcast-audio')
-      .upload(fileName, audioBuffer, {
-        contentType: 'audio/mpeg',
-        upsert: false
-      })
+    let uploadError: Error | null = null
+    let uploadSuccess = false
+    const maxUploadRetries = 3
 
-    if (uploadError) {
-      console.error('Error uploading podcast to storage:', uploadError)
-      // Continue without storage - return script anyway
+    for (let attempt = 1; attempt <= maxUploadRetries; attempt++) {
+      console.log(`[Podcast] Upload attempt ${attempt}/${maxUploadRetries}`)
+
+      const { error } = await supabase.storage
+        .from('podcast-audio')
+        .upload(fileName, audioBuffer, {
+          contentType: 'audio/mpeg',
+          upsert: true // Allow overwrite on retry
+        })
+
+      if (!error) {
+        uploadSuccess = true
+        console.log(`[Podcast] Upload successful on attempt ${attempt}`)
+        break
+      }
+
+      uploadError = error
+      console.error(`[Podcast] Upload attempt ${attempt} failed:`, error.message)
+
+      if (attempt < maxUploadRetries) {
+        // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+        const delay = Math.pow(2, attempt - 1) * 1000
+        console.log(`[Podcast] Waiting ${delay}ms before retry...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+
+    if (!uploadSuccess) {
+      console.error('[Podcast] All upload attempts failed:', uploadError)
     }
 
     // Generate signed URL (valid for 1 hour)
     let audioUrl = ''
-    if (!uploadError) {
+    if (uploadSuccess) {
       const { data: urlData } = await supabase.storage
         .from('podcast-audio')
         .createSignedUrl(fileName, 3600)

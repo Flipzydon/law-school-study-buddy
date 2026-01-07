@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
 import { QuizConfig } from './QuizConfig'
+import { GenerationProgress, QUIZ_STEPS, FLASHCARD_STEPS, SLIDES_STEPS, PODCAST_STEPS } from './ui/GenerationProgress'
 import { cn } from '@/lib/utils'
 import type { QuizConfig as QuizConfigType, Question, DEFAULT_QUIZ_CONFIG } from '@/types/quiz'
 import type { Flashcard } from '@/types/flashcard'
@@ -30,6 +31,42 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
   const [podcastLoading, setPodcastLoading] = useState(false)
   const [flashcardCount, setFlashcardCount] = useState<15 | 30 | 45>(30)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Progress step tracking
+  const [quizStep, setQuizStep] = useState(0)
+  const [flashcardStep, setFlashcardStep] = useState(0)
+  const [slidesStep, setSlidesStep] = useState(0)
+  const [podcastStep, setPodcastStep] = useState(0)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Helper to simulate progress steps
+  const simulateProgress = (
+    setStep: React.Dispatch<React.SetStateAction<number>>,
+    maxSteps: number,
+    intervalMs: number = 8000
+  ) => {
+    let step = 0
+    setStep(0)
+
+    progressIntervalRef.current = setInterval(() => {
+      step++
+      if (step < maxSteps - 1) {
+        setStep(step)
+      }
+    }, intervalMs)
+  }
+
+  const clearProgressInterval = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = null
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => clearProgressInterval()
+  }, [])
   const [config, setConfig] = useState<QuizConfigType>({
     questionCount: 10,
     difficulty: 'intermediate',
@@ -86,6 +123,7 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
 
     setIsLoading(true)
     setError('')
+    simulateProgress(setQuizStep, QUIZ_STEPS.length, 10000)
 
     try {
       const formData = new FormData()
@@ -102,12 +140,17 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
         throw new Error(errorData.error || 'Failed to process PDF')
       }
 
+      clearProgressInterval()
+      setQuizStep(QUIZ_STEPS.length - 1) // Complete
+
       const data = await response.json()
       onQuestionsGenerated(data.questions, file.name, config)
     } catch (err: any) {
       setError(err.message || 'An error occurred while processing the PDF')
     } finally {
+      clearProgressInterval()
       setIsLoading(false)
+      setQuizStep(0)
     }
   }
 
@@ -123,6 +166,7 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
 
     setFlashcardLoading(true)
     setError('')
+    simulateProgress(setFlashcardStep, FLASHCARD_STEPS.length, 10000)
 
     try {
       const formData = new FormData()
@@ -140,12 +184,17 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
         throw new Error(errorData.error || 'Failed to generate flashcards')
       }
 
+      clearProgressInterval()
+      setFlashcardStep(FLASHCARD_STEPS.length - 1)
+
       const data = await response.json()
       onFlashcardsGenerated(data.flashcards, file.name)
     } catch (err: any) {
       setError(err.message || 'An error occurred while generating flashcards')
     } finally {
+      clearProgressInterval()
       setFlashcardLoading(false)
+      setFlashcardStep(0)
     }
   }
 
@@ -154,6 +203,7 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
 
     setSlidesLoading(true)
     setError('')
+    simulateProgress(setSlidesStep, SLIDES_STEPS.length, 10000)
 
     try {
       const formData = new FormData()
@@ -170,12 +220,17 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
         throw new Error(errorData.error || 'Failed to generate slides')
       }
 
+      clearProgressInterval()
+      setSlidesStep(SLIDES_STEPS.length - 1)
+
       const data = await response.json()
       onSlidesGenerated(data.slides, data.slidesUrl || '', file.name)
     } catch (err: any) {
       setError(err.message || 'An error occurred while generating slides')
     } finally {
+      clearProgressInterval()
       setSlidesLoading(false)
+      setSlidesStep(0)
     }
   }
 
@@ -184,6 +239,7 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
 
     setPodcastLoading(true)
     setError('')
+    simulateProgress(setPodcastStep, PODCAST_STEPS.length, 12000) // Podcast takes longer
 
     try {
       const formData = new FormData()
@@ -201,12 +257,17 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
         throw new Error(errorData.error || 'Failed to generate podcast')
       }
 
+      clearProgressInterval()
+      setPodcastStep(PODCAST_STEPS.length - 1)
+
       const data = await response.json()
       onPodcastGenerated(data.script, data.audioUrl || '', file.name)
     } catch (err: any) {
       setError(err.message || 'An error occurred while generating podcast')
     } finally {
+      clearProgressInterval()
       setPodcastLoading(false)
+      setPodcastStep(0)
     }
   }
 
@@ -542,16 +603,37 @@ export default function PDFUpload({ onQuestionsGenerated, onFlashcardsGenerated,
           )}
         </div>
 
-        {/* Help Text */}
-        {anyLoading && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center text-sm font-body text-ink-light dark:text-slate-400"
-          >
-            This may take up to a minute depending on the PDF size...
-          </motion.p>
-        )}
+        {/* Progress Indicators */}
+        <AnimatePresence>
+          {isLoading && (
+            <GenerationProgress
+              steps={QUIZ_STEPS}
+              currentStep={quizStep}
+              type="quiz"
+            />
+          )}
+          {flashcardLoading && (
+            <GenerationProgress
+              steps={FLASHCARD_STEPS}
+              currentStep={flashcardStep}
+              type="flashcards"
+            />
+          )}
+          {slidesLoading && (
+            <GenerationProgress
+              steps={SLIDES_STEPS}
+              currentStep={slidesStep}
+              type="slides"
+            />
+          )}
+          {podcastLoading && (
+            <GenerationProgress
+              steps={PODCAST_STEPS}
+              currentStep={podcastStep}
+              type="podcast"
+            />
+          )}
+        </AnimatePresence>
       </form>
     </Card>
   )
