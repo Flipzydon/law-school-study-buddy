@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/Button'
 
@@ -24,8 +24,32 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [autoScroll, setAutoScroll] = useState(true)
+  const [highlightEnabled, setHighlightEnabled] = useState(true)
   const userScrolledRef = useRef(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([])
+
+  // Split script into words for highlighting
+  const words = useMemo(() => {
+    return script.split(/(\s+)/).filter(Boolean)
+  }, [script])
+
+  // Calculate current word index based on audio progress
+  const currentWordIndex = useMemo(() => {
+    if (!isPlaying || audioDuration <= 0 || !highlightEnabled) return -1
+    const totalWords = words.filter(w => w.trim()).length
+    const progress = currentTime / audioDuration
+    return Math.floor(progress * totalWords)
+  }, [currentTime, audioDuration, isPlaying, words, highlightEnabled])
+
+  // Get actual word index (accounting for whitespace tokens)
+  const getActualWordIndex = (tokenIndex: number) => {
+    let wordCount = 0
+    for (let i = 0; i <= tokenIndex; i++) {
+      if (words[i]?.trim()) wordCount++
+    }
+    return wordCount - 1
+  }
 
   useEffect(() => {
     const audio = audioRef.current
@@ -518,6 +542,25 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
             </motion.svg>
           </button>
 
+          {/* Highlight Toggle */}
+          {showScript && audioUrl && (
+            <button
+              onClick={() => setHighlightEnabled(!highlightEnabled)}
+              className={`px-3 py-4 rounded-xl border transition-all font-mono text-xs font-bold ${
+                highlightEnabled
+                  ? 'bg-accent text-ink border-ink shadow-[2px_2px_0px_0px_#1A1A1A]'
+                  : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20'
+              }`}
+              aria-pressed={highlightEnabled}
+              aria-label={highlightEnabled ? 'Text highlighting enabled' : 'Text highlighting disabled'}
+              title={highlightEnabled ? 'Highlight ON' : 'Highlight OFF'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          )}
+
           {/* Auto-scroll Toggle */}
           {showScript && audioUrl && (
             <button
@@ -559,23 +602,54 @@ export default function PodcastPlayer({ script, audioUrl, duration, title, onClo
                 role="region"
                 aria-label="Podcast transcript"
               >
-                <p className="text-ink dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base font-body">
-                  {script}
+                <p className="leading-relaxed text-sm sm:text-base font-body">
+                  {words.map((word, index) => {
+                    const isWhitespace = !word.trim()
+                    if (isWhitespace) {
+                      return <span key={index}>{word}</span>
+                    }
+
+                    const wordIndex = getActualWordIndex(index)
+                    const isCurrentWord = wordIndex === currentWordIndex
+                    const isPastWord = wordIndex < currentWordIndex && currentWordIndex >= 0
+
+                    return (
+                      <span
+                        key={index}
+                        ref={(el) => { wordRefs.current[index] = el }}
+                        className={`transition-all duration-150 ${
+                          isCurrentWord
+                            ? 'bg-accent text-ink px-0.5 rounded font-semibold'
+                            : isPastWord
+                              ? 'text-ink/60 dark:text-slate-400'
+                              : 'text-ink dark:text-slate-300'
+                        }`}
+                      >
+                        {word}
+                      </span>
+                    )
+                  })}
                 </p>
               </div>
-              {/* Auto-scroll indicator */}
+              {/* Feature status indicators */}
               {audioUrl && (
-                <div className="flex items-center justify-center gap-2 mt-2 text-xs text-white/40 font-body">
-                  {autoScroll ? (
-                    <>
-                      <svg className="w-3 h-3 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                      <span>Auto-scrolling with audio</span>
-                    </>
-                  ) : (
-                    <span>Scroll manually or enable auto-scroll</span>
-                  )}
+                <div className="flex items-center justify-center gap-4 mt-2 text-xs text-white/40 font-body">
+                  <div className="flex items-center gap-1">
+                    <svg className={`w-3 h-3 ${highlightEnabled ? 'text-accent' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    <span className={highlightEnabled ? 'text-white/60' : ''}>
+                      {highlightEnabled ? 'Highlighting' : 'No highlight'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <svg className={`w-3 h-3 ${autoScroll ? 'text-accent animate-bounce' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    <span className={autoScroll ? 'text-white/60' : ''}>
+                      {autoScroll ? 'Auto-scroll' : 'Manual scroll'}
+                    </span>
+                  </div>
                 </div>
               )}
             </motion.div>
